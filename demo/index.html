@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Requests – clickable demo</title>
+<meta name="description" content="Clickable demo of the Django student request management system: student, secretary, lecturer and head-of-department workflow with sample data.">
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#0f172a;--mut:#56657d;--line:#dde4ee;--acc:#4f46e5;--acc2:#e0e7ff;--ok:#15803d;--bad:#b91c1c;--warn:#b45309}
+@media (prefers-color-scheme:dark){:root{--bg:#0c1222;--card:#131c33;--ink:#e8eef8;--mut:#a0b0c8;--line:#25345a;--acc:#8b93ff;--acc2:#23285a;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:52px}
+button{font:inherit;cursor:pointer}a{color:var(--acc)}
+.banner{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#0f172a;color:#fff;font-size:13px;padding:8px 14px;text-align:center}.banner a{color:#a5b4fc}
+header.top{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.bar{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.logo{font-weight:800;font-size:18px;margin-right:auto}
+.roles{display:flex;gap:6px;flex-wrap:wrap}.roles button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:7px 12px;font-weight:600;font-size:14px}
+.roles button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#fff}
+main{max-width:1100px;margin:0 auto;padding:18px 16px}
+h1{font-size:25px;margin:0 0 4px}.sub{color:var(--mut);margin:0 0 14px}
+.layout{display:grid;grid-template-columns:1fr 1.15fr;gap:16px}@media(max-width:860px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.panel h2{font-size:16px;margin:0 0 10px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px}.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}.stat b{font-size:22px;display:block}.stat small{color:var(--mut)}
+.item{width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:11px;padding:10px 12px;margin-bottom:8px;display:block}
+.item[aria-current=true]{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc2)}
+.item .t{font-weight:700}.item .m{color:var(--mut);font-size:13px}
+.pill{display:inline-block;border-radius:99px;padding:2px 9px;font-size:12px;font-weight:700;background:var(--acc2);color:var(--acc)}
+.pill.approved{background:#dcfce7;color:var(--ok)}.pill.rejected{background:#fee2e2;color:var(--bad)}.pill.needs_info{background:#fef3c7;color:var(--warn)}
+@media (prefers-color-scheme:dark){.pill.approved{background:#0f2f1c}.pill.rejected{background:#3b1212}.pill.needs_info{background:#33260a}}
+.field{display:grid;gap:4px;margin-bottom:10px;font-size:14px}input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font:inherit}
+textarea{min-height:70px}.err{color:var(--bad);font-size:13px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:8px 13px;font-weight:600;font-size:14px}.btn.p{background:var(--acc);border-color:var(--acc);color:#fff}.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}.btn.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.tl{list-style:none;margin:10px 0 0;padding:0;border-left:2px solid var(--line)}.tl li{padding:0 0 10px 12px;position:relative;font-size:14px}.tl li:before{content:"";position:absolute;left:-6px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--acc)}
+.tl small{color:var(--mut);display:block}
+.empty{color:var(--mut);padding:20px;text-align:center;border:1px dashed var(--line);border-radius:12px}
+.toast{position:fixed;top:70px;right:12px;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;z-index:60;max-width:320px;font-size:14px}
+.note{background:var(--bg);border-radius:9px;padding:8px 10px;margin:6px 0;font-size:14px}
+</style>
+</head>
+<body>
+<header class="top"><div class="bar">
+<div class="logo">🎓 SCE Request Portal</div>
+<div class="roles" role="group" aria-label="Switch role (demo)" id="roles"></div>
+</div></header>
+<main id="main"></main>
+<div class="banner">Demo mode – sample data, nothing is saved. Switch roles on top to walk a request through the workflow. The real app is Django + SQLite. <a href="https://github.com/saeedabuhani/student-request-management-system">Source on GitHub</a></div>
+<script>
+(function(){
+var ROLES={student:{n:"Student",who:"Student One (SE)"},secretary:{n:"Secretary",who:"Secretary SE"},lecturer:{n:"Lecturer",who:"Dr. Lecturer SE"},hod:{n:"Head of Dept",who:"Head of Department"}};
+var ST={new:"New",in_progress:"In Progress",sent_to_lecturer:"Sent to Lecturer",sent_to_hod:"Sent to Head of Department",needs_info:"Needs More Information",approved:"Approved",rejected:"Rejected"};
+var TYPES=["Study Approval","Appeal","Postponement","General"];
+var now=Date.now(),DAY=864e5,nid=106;
+function h(r,txt,d){return {role:r,text:txt,at:now-d*DAY}}
+var R=[
+{id:101,title:"Study approval – Operating Systems lab",type:"Study Approval",course:"SE302 Operating Systems",status:"approved",prio:"medium",desc:"Request approval to join the Tuesday lab group because of a timetable clash.",notes:[],hist:[h("Student","Request submitted.",9),h("Secretary","Forwarded to lecturer.",8),h("Lecturer","Recommended approval – lab has space.",6),h("Head of Dept","Approved.",4)]},
+{id:102,title:"Grade appeal – Algorithms midterm",type:"Appeal",course:"CS301 Algorithms",status:"sent_to_lecturer",prio:"high",desc:"Grade received: 65. Expected: 75. Question 4 was ambiguous.",notes:[],hist:[h("Student","Request submitted.",4),h("Secretary","Forwarded to lecturer for review.",3)]},
+{id:103,title:"Postponement – final project deadline",type:"Postponement",course:"SE410 Capstone",status:"new",prio:"medium",desc:"Medical reasons – requesting a one-week extension.",notes:[],hist:[h("Student","Request submitted.",1)]},
+{id:104,title:"Request for a confirmation letter",type:"General",course:"",status:"needs_info",prio:"low",desc:"Confirmation of enrollment for a scholarship office.",notes:[{by:"Secretary",text:"Missing document: scholarship office form."}],hist:[h("Student","Request submitted.",6),h("Secretary","Missing document requested: scholarship office form.",5)]},
+{id:105,title:"Study approval – elective outside the department",type:"Study Approval",course:"EE210 Circuits",status:"sent_to_hod",prio:"medium",desc:"I would like to take Circuits as an elective.",notes:[],hist:[h("Student","Request submitted.",7),h("Secretary","Forwarded to lecturer.",6),h("Lecturer","Content is compatible with the SE track.",3),h("Secretary","Forwarded to Head of Department.",2)]}
+];
+var state={role:"student",sel:null,notifs:[]};
+var $=function(s){return document.querySelector(s)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function ago(t){var d=Math.round((now-t)/DAY);return d<=0?"today":d===1?"1 day ago":d+" days ago"}
+function toast(t){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.textContent=t;document.body.appendChild(d);setTimeout(function(){d.remove()},2800)}
+function find(id){return R.filter(function(r){return r.id===id})[0]}
+function act(r,role,text,status){if(status)r.status=status;r.hist.push({role:role,text:text,at:Date.now()});if(role!=="Student")state.notifs.push("Your request “"+r.title+"”: "+text)}
+function visible(){var s={student:["new","in_progress","sent_to_lecturer","sent_to_hod","needs_info","approved","rejected"],secretary:["new","in_progress","needs_info"],lecturer:["sent_to_lecturer"],hod:["sent_to_hod"]}[state.role];
+ return R.filter(function(r){return s.indexOf(r.status)>=0}).sort(function(a,b){return b.id-a.id})}
+function roles(){$("#roles").innerHTML=Object.keys(ROLES).map(function(k){return '<button data-r="'+k+'" aria-pressed="'+(state.role===k)+'">'+ROLES[k].n+'</button>'}).join("");
+ document.querySelectorAll("[data-r]").forEach(function(b){b.onclick=function(){state.role=b.dataset.r;state.sel=null;render()}})}
+function pill(s){return '<span class="pill '+s+'">'+ST[s]+'</span>'}
+function stats(){var c=function(f){return R.filter(f).length};
+ return '<div class="stats"><div class="stat"><b>'+R.length+'</b><small>Total requests</small></div><div class="stat"><b>'+c(function(r){return ["new","in_progress","needs_info"].indexOf(r.status)>=0})+'</b><small>With secretary</small></div><div class="stat"><b>'+c(function(r){return r.status==="sent_to_lecturer"})+'</b><small>With lecturer</small></div><div class="stat"><b>'+c(function(r){return r.status==="sent_to_hod"})+'</b><small>Awaiting HoD</small></div><div class="stat"><b>'+c(function(r){return r.status==="approved"})+'</b><small>Approved</small></div><div class="stat"><b>'+c(function(r){return r.status==="rejected"})+'</b><small>Rejected</small></div></div>'}
+function listHtml(){var l=visible();return l.length?l.map(function(r){return '<button class="item" data-id="'+r.id+'" aria-current="'+(state.sel===r.id)+'"><span class="t">'+esc(r.title)+'</span><br><span class="m">REQ-'+r.id+' · '+esc(r.type)+(r.course?" · "+esc(r.course):"")+'</span> '+pill(r.status)+'</button>'}).join(""):'<div class="empty">Nothing waiting for you here.</div>'}
+function detail(){var r=find(state.sel);if(!r||visible().indexOf(r)<0)return '<div class="empty">Select a request to see its details and available actions.</div>';
+ var h='<h2>'+esc(r.title)+'</h2><p class="m" style="color:var(--mut);margin:0 0 6px">REQ-'+r.id+' · '+esc(r.type)+' · priority '+r.prio+'</p>'+pill(r.status)+'<p>'+esc(r.desc)+'</p>';
+ r.notes.forEach(function(n){h+='<div class="note"><b>'+esc(n.by)+':</b> '+esc(n.text)+'</div>'});
+ var role=state.role,a="";
+ if(role==="secretary"){a='<div class="field"><label for="nt">Note to student</label><textarea id="nt" placeholder="Add a note or ask for a missing document"></textarea></div><div class="row"><button class="btn" id="aNote">Add note</button><button class="btn" id="aDoc">Request missing document</button><button class="btn p" id="aLec">Forward to lecturer</button><button class="btn p" id="aHod">Forward to Head of Dept</button></div>'}
+ if(role==="lecturer"){a='<div class="field"><label for="nt">Professional comment</label><textarea id="nt" placeholder="Recommendation for the Head of Department"></textarea><span class="err" id="er"></span></div><div class="row"><button class="btn p" id="aFw">Review and forward to Head of Dept</button></div>'}
+ if(role==="hod"){a='<div class="field"><label for="nt">Final note (visible to the student)</label><textarea id="nt"></textarea></div><div class="row"><button class="btn ok" id="aOk">Approve</button><button class="btn bad" id="aNo">Reject</button></div>'}
+ if(role==="student"&&r.status==="needs_info"){a='<div class="row"><button class="btn p" id="aUp">Upload the missing document (simulated)</button></div>'}
+ h+=a+'<ul class="tl" aria-label="Status history">'+r.hist.slice().reverse().map(function(e){return '<li><b>'+esc(e.role)+'</b>: '+esc(e.text)+'<small>'+ago(e.at)+'</small></li>'}).join("")+'</ul>';return h}
+function render(){roles();var role=state.role,m=$("#main");
+ var title={student:"My requests",secretary:"Secretary dashboard",lecturer:"Lecturer dashboard",hod:"Department head dashboard"}[role];
+ var html='<h1>'+title+'</h1><p class="sub">Signed in as '+esc(ROLES[role].who)+' (demo account)</p>';
+ if(role==="hod")html+=stats();
+ html+='<div class="layout"><div>';
+ if(role==="student"){html+='<div class="panel" style="margin-bottom:14px"><h2>Submit a new request</h2><form id="nf" novalidate><div class="field"><label for="ti">Title</label><input id="ti"><span class="err" id="e1"></span></div><div class="field"><label for="ty">Type</label><select id="ty">'+TYPES.map(function(t){return '<option>'+t+'</option>'}).join("")+'</select></div><div class="field"><label for="ds">Description</label><textarea id="ds"></textarea><span class="err" id="e2"></span></div><button class="btn p">Submit request</button></form></div>';
+  if(state.notifs.length)html+='<div class="panel" style="margin-bottom:14px"><h2>Notifications ('+state.notifs.length+')</h2>'+state.notifs.slice(-4).reverse().map(function(n){return '<div class="note">'+esc(n)+'</div>'}).join("")+'</div>'}
+ html+='<div class="panel"><h2>'+(role==="student"?"Track my requests":"Requests waiting for you")+'</h2>'+listHtml()+'</div></div><div class="panel" id="dt">'+detail()+'</div></div>';
+ m.innerHTML=html;
+ document.querySelectorAll(".item").forEach(function(b){b.onclick=function(){state.sel=+b.dataset.id;render()}});
+ var q=function(id,f){var e=$(id);if(e)e.onclick=f};var r=find(state.sel),nt=function(){return $("#nt")?$("#nt").value.trim():""};
+ if(role==="student"){$("#nf").onsubmit=function(e){e.preventDefault();var t=$("#ti").value.trim(),d=$("#ds").value.trim(),ok=true;
+   $("#e1").textContent=t.length<5?(ok=false,"Title must be at least 5 characters"):"";$("#e2").textContent=d.length<10?(ok=false,"Please describe your request (10+ characters)"):"";if(!ok)return;
+   var n={id:nid++,title:t,type:$("#ty").value,course:"",status:"new",prio:"medium",desc:d,notes:[],hist:[{role:"Student",text:"Request submitted.",at:Date.now()}]};R.push(n);state.sel=n.id;toast("Request REQ-"+n.id+" submitted");render()};
+  q("#aUp",function(){act(r,"Student","Missing document uploaded.","in_progress");r.notes=[];toast("Document uploaded");render()})}
+ if(role==="secretary"){q("#aNote",function(){if(!nt()){toast("Write a note first");return}r.notes.push({by:"Secretary",text:nt()});act(r,"Secretary","Note added: "+nt(),r.status==="new"?"in_progress":null);render()});
+  q("#aDoc",function(){var t=nt()||"additional supporting document";r.notes.push({by:"Secretary",text:"Missing document: "+t});act(r,"Secretary","Missing document requested: "+t,"needs_info");render()});
+  q("#aLec",function(){if(r.status==="needs_info"){toast("Resolve the missing document first");return}act(r,"Secretary","Forwarded to lecturer for review.","sent_to_lecturer");state.sel=null;toast("Forwarded to lecturer");render()});
+  q("#aHod",function(){if(r.status==="needs_info"){toast("Resolve the missing document first");return}act(r,"Secretary","Forwarded to Head of Department.","sent_to_hod");state.sel=null;toast("Forwarded to Head of Department");render()})}
+ if(role==="lecturer")q("#aFw",function(){if(nt().length<5){$("#er").textContent="Please add a short professional comment";return}r.notes.push({by:"Lecturer",text:nt()});act(r,"Lecturer","Reviewed: "+nt());act(r,"Lecturer","Forwarded to Head of Department.","sent_to_hod");state.sel=null;toast("Forwarded to Head of Department");render()});
+ if(role==="hod"){q("#aOk",function(){act(r,"Head of Dept","Approved."+(nt()?" "+nt():""),"approved");state.sel=null;toast("Request approved");render()});q("#aNo",function(){act(r,"Head of Dept","Rejected."+(nt()?" "+nt():""),"rejected");state.sel=null;toast("Request rejected");render()})}
+}
+render();
+})();
+</script>
+</body>
+</html>

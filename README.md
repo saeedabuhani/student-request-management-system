@@ -1,153 +1,105 @@
-# Student Forms Request Management System
+# Student Request Management System
 
-A comprehensive web-based request management system designed to digitize and automate student academic and administrative requests, enabling efficient submission, tracking, review, and approval by all academic roles.
-## Features
+A Django web app that replaces paper student forms with a digital workflow: students submit requests, and a secretary, lecturer and head of department review, forward and decide them, with full history and notifications.
 
-### Project Description
-The Student Forms Request Management System replaces manual, paper-based student forms with a centralized digital platform.
-It allows students to submit requests online and enables academic secretaries, lecturers, and department heads to review, process, and approve requests through a structured workflow with full transparency and notifications.
+![Tests](https://img.shields.io/badge/tests-167%20passing-brightgreen)
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![Django](https://img.shields.io/badge/Django-6.0-0c4b33)
 
- **User Roles & Functionalities**
- 
-  ## User Roles & Functionalities
-   **Student**
-   -Secure login and logout
-   -Submit new requests with attachments
-   -Track request status in real time
-   -View request history and staff notes
-   -Receive notifications for every status update
+### [▶ Live Demo](https://student-requests-demo.netlify.app)
 
-   **Academic Secretary**
-   -View assigned student requests
-   -Review and validate submitted documents
-   -Add notes or request additional documents
-   -Update request status
-   -Forward requests to lecturers or department heads
+The live demo is a static, clickable version with sample data (switch role at the top and walk a request through the workflow). The real application is the Django project in this repository.
 
-   **Lecturer**
-   -View requests related to their courses
-   -Review academic details
-   -Add professional comments or recommendations
-   -Forward reviewed requests for final approval
-
-   **Head of Department**
-
-   -View all pending approval requests
-   -Filter requests by date and type
-   -Approve or reject requests
-   -Add final notes visible to students
-   -Monitor request statistics and processing performance
+| | |
+|---|---|
+| ![Student](docs/screenshots/01-student.png) | ![Secretary](docs/screenshots/02-secretary.png) |
+| ![Lecturer](docs/screenshots/03-lecturer.png) | ![Head of department](docs/screenshots/04-hod.png) |
 
 ## Features
 
-**System Features**
- 
- 1. **Authentication & Security**
- -Secure login/logout system
- -Role-Based Access Control (RBAC)
- -Session-based authentication
- -Protected API endpoints
+- **Roles:** student, academic secretary, lecturer, head of department, admin, with role-based access control.
+- **Requests:** study approval, appeal, postponement and general requests, with file attachments and input validation.
+- **Workflow:** secretary reviews and adds notes, can ask for a missing document, and forwards to a lecturer or to the head of department; the lecturer adds a professional comment; the head of department approves or rejects with a final note.
+- **History and notifications:** every status change is recorded and the student is notified.
+- **Dashboards:** student summary, staff and lecturer queues, department-head statistics.
+- **Sign-up** with degree selection and validation (university email domain, 9-digit student ID, password strength).
+- **Two-step login:** password, then a 6-digit code sent by email.
 
- 2. **Digital Request Submission**
- -Multiple request types:
- -Study Approval
- -Appeal
- -Postponement
- -General Request
- -File upload and document management
- -Input validation
+## Architecture
 
- 3. **Request Processing Workflow**
- -Multi-role approval flow
- -Automatic status updates
- -Request forwarding between roles
- -Full request history tracking
+```mermaid
+flowchart LR
+  B[Browser] --> V[Django views + templates]
+  V --> A[core: custom User, 2FA codes]
+  V --> R[requests_unified: Request, StatusHistory, Notification, Degree, Course]
+  V --> P[students / staff / lecturers / head_of_dept / management portals]
+  R --> DB[(SQLite)]
+  A --> DB
+```
 
- 4. **Notification System**
- -Submission confirmation
- -Status change notifications
- -Approval/rejection alerts
- -Final notes notifications
+## Tech stack
 
- 5. **Dashboards & Management**
- -Student dashboard with request summary
- -Staff and lecturer request management views
- -Department head analytics and statistics
- -Exportable reports (future support)
+| Layer | Technology |
+|---|---|
+| Framework | Django 6, server-rendered templates |
+| Database | SQLite |
+| Auth | Django auth with a custom `core.User` model, role field, email verification codes |
+| Tests | Django `TestCase` (167 tests) |
 
-## Installation
+## Quick start
 
-1. Install Python dependencies:
+Requires Python 3.12+.
+
 ```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate   |   macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
+python manage.py migrate
+python manage.py seed_demo      # one demo user per role + sample requests
+python manage.py runserver
 ```
 
-2. Run the application:
+Open http://127.0.0.1:8000/login/. Login uses a two-step email verification: with no SMTP settings the 6-digit code is printed in the terminal running `runserver`.
+
+### Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | insecure dev fallback | Set a long random value in any shared environment |
+| `DJANGO_DEBUG` | `true` | Set to `false` outside local development |
+| `DJANGO_ALLOWED_HOSTS` | `127.0.0.1,localhost` | Comma-separated host list |
+| `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` | unset (codes print to console) | SMTP login for real verification emails |
+
+## Demo credentials
+
+Created by `python manage.py seed_demo`. Demo data for local use only.
+
+| Role | Email | Password |
+|---|---|---|
+| Student | `student@ac.sce.ac.il` | `Student1!` |
+| Secretary | `secretary.se@ac.sce.ac.il` | `Secretary1!` |
+| Lecturer | `lecturer.se@ac.sce.ac.il` | `Lecturer1!` |
+| Head of Dept | `hod@ac.sce.ac.il` | `Head1234!` |
+| Admin | `admin@ac.sce.ac.il` | `Admin123!` |
+
+## Tests
+
 ```bash
-python app.py
+python manage.py test tests
 ```
 
-3. Access the application:
-   - Open your browser and navigate to `http://localhost:5000`
-   - Use the quick login buttons or login with credentials:
-     - Email: `admin@ac.sce.ac.il`
-     - Password: `admin`
-     - If login is made via this email address, a password will be sent to the email address of a member of the development team.
+Result: 167 tests, OK (8 skipped). The `test_*.py` files in the repository root are manual scripts, not part of the suite.
 
-## Quick Login
+## Security notes
 
-The system includes demo quick login buttons for:
-- Student
-- Secretary
-- Lecturer
-- Head of Dept
+- `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS` and SMTP credentials are read from environment variables; the database, uploads and collected static files are git-ignored.
+- An earlier version of this repository had an SMTP app password committed. It has been removed from the code and revoked, but it remains in the git history, so never reuse it.
+- Role checks are enforced in the views (`staff_required`, and similar decorators), not only in the templates.
+- Passwords are validated for length and character classes at sign-up.
 
-## API Endpoints
+## Roadmap
 
-### Department Head Endpoints
-
-- `GET /api/head/pending-requests` - Fetch pending requests (supports filtering)
-  - Query parameters: `date_from`, `date_to`, `request_type`
-  
-- `POST /api/head/approve-request/<request_id>` - Approve or reject a request
-  - Body: `{ "action": "approve" | "reject", "notes": "optional notes" }`
-  
-- `POST /api/head/add-final-notes/<request_id>` - Add final notes
-  - Body: `{ "notes": "notes text" }`
-  
-- `GET /api/head/request-details/<request_id>` - Get detailed request information
-
-## Database Schema
-
-The system uses SQLite with the following main models:
-- **User**: Users with roles (student, secretary, lecturer, head_of_dept)
-- **Request**: Student requests with status, type, priority
-- **ApprovalLog**: Log of all approval actions
-- **Notification**: Notifications sent to users
-
-## Security
-
-- Role-based access control (RBAC)
-- Session-based authentication
-- Department Head role enforcement on all endpoints
-- SQL injection protection via SQLAlchemy ORM
-
-## Testing
-
-The system includes sample data that is automatically created on first run:
-- Demo users for each role
-- Sample pending requests for testing
-
-## Technologies Used
-
-- **Backend**: Python,Django
-- **Database**: Python
-- **Frontend**: HTML5, CSS3 ,Django
-- **Styling**: Modern CSS with CSS Variables
-
-## Browser Support
-
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
+- Rate-limit the login and verification-code endpoints.
+- Move from SQLite to PostgreSQL for deployment.
+- Exportable reports for the head of department.
+- Replace the manual root-level scripts with proper tests.

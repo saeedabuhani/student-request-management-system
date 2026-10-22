@@ -5,3 +5,12 @@ __pycache__/
 .env
 .DS_Store
 .vscode/
+
+# Local database, uploads and collected static files
+db.sqlite3
+media/
+staticfiles/
+.env
+
+# Local Netlify folder
+.netlify
