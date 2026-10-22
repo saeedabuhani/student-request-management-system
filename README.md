@@ -77,22 +77,37 @@ It allows students to submit requests online and enables academic secretaries, l
 
 ## Installation
 
-1. Install Python dependencies:
+Requires Python 3.12+.
+
 ```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate   |   macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
+python manage.py migrate
+python manage.py seed_demo      # creates one demo user per role + sample requests
+python manage.py runserver
 ```
 
-2. Run the application:
-```bash
-python app.py
-```
+Open `http://127.0.0.1:8000/login/` and sign in with a demo account. Login uses a two-step email verification: with no SMTP settings the 6-digit code is printed in the terminal running `runserver`.
 
-3. Access the application:
-   - Open your browser and navigate to `http://localhost:5000`
-   - Use the quick login buttons or login with credentials:
-     - Email: `admin@ac.sce.ac.il`
-     - Password: `admin`
-     - If login is made via this email address, a password will be sent to the email address of a member of the development team.
+| Role | Email | Password |
+|------|-------|----------|
+| Student | `student@ac.sce.ac.il` | `Student1!` |
+| Secretary | `secretary.se@ac.sce.ac.il` | `Secretary1!` |
+| Lecturer | `lecturer.se@ac.sce.ac.il` | `Lecturer1!` |
+| Head of Dept | `hod@ac.sce.ac.il` | `Head1234!` |
+| Admin | `admin@ac.sce.ac.il` | `Admin123!` |
+
+These accounts are demo data for local use only.
+
+### Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | insecure dev fallback | Set a long random value in any shared environment |
+| `DJANGO_DEBUG` | `true` | Set to `false` outside local development |
+| `DJANGO_ALLOWED_HOSTS` | `127.0.0.1,localhost` | Comma-separated host list |
+| `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` | unset (codes print to console) | SMTP login for real verification emails |
 
 ## Quick Login
 
