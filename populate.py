@@ -387,6 +387,8 @@ def create_sample_requests(users, degrees, courses):
 
 
 def main():
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     print("=" * 60)
     print("SCE Request Portal - Database Population Script")
     print("=" * 60)

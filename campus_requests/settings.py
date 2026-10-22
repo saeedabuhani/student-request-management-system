@@ -3,22 +3,17 @@ Unified Django settings for Student Request Management System.
 Combines all 4 branches into one project.
 """
 
+import os
 from pathlib import Path
-import ssl
-import smtplib
-
-# ============================================
-# FIX SSL CERTIFICATE VERIFICATION ISSUE
-# ============================================
-ssl._create_default_https_context = ssl._create_unverified_context
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "dev-secret-key-change-me-in-production"
+# Read the key from the environment. The fallback is for local development only.
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-key-do-not-use-in-production")
 
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 
 # ============================================
 # INSTALLED APPS - All unified apps
@@ -139,12 +134,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ============================================
 # EMAIL CONFIGURATION - 2FA Verification Codes
 # ============================================
-EMAIL_BACKEND = 'core.email_backend.CustomEmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
+# With no SMTP credentials the verification code is printed to the server console (local development).
+# To send real email, set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD (e.g. a Gmail app password) in the environment.
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
-EMAIL_HOST_USER = 'saied442001@gmail.com'          # <-- Your Gmail address
-EMAIL_HOST_PASSWORD = 'qodn omhx djnl tfqd'        # <-- PASTE YOUR NEW APP PASSWORD HERE (16 characters)
-DEFAULT_FROM_EMAIL = 'SCE Student Portal <saied442001@gmail.com>'
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "SCE Student Portal <no-reply@localhost>")
 EMAIL_TIMEOUT = 30

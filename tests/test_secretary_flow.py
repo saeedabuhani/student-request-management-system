@@ -18,6 +18,7 @@ class SecretaryForwardToLecturerTest(TestCase):
         self.degree = Degree.objects.create(name="Software Engineering", code="SE")
         self.course = Course.objects.create(code="SE101", name="Software Eng Basics")
         self.course.degrees.add(self.degree)
+        self.other_degree = Degree.objects.create(name="Electrical Engineering", code="EE")
         
         # Create users
         self.secretary = User.objects.create_user(
@@ -26,7 +27,8 @@ class SecretaryForwardToLecturerTest(TestCase):
             password="Test123!",
             role=User.ROLE_SECRETARY,
             first_name="Sara",
-            last_name="Secretary"
+            last_name="Secretary",
+            degree=self.degree
         )
         
         self.lecturer1 = User.objects.create_user(
@@ -35,7 +37,8 @@ class SecretaryForwardToLecturerTest(TestCase):
             password="Test123!",
             role=User.ROLE_LECTURER,
             first_name="John",
-            last_name="Lecturer"
+            last_name="Lecturer",
+            degree=self.degree
         )
         
         self.lecturer2 = User.objects.create_user(
@@ -44,7 +47,8 @@ class SecretaryForwardToLecturerTest(TestCase):
             password="Test123!",
             role=User.ROLE_LECTURER,
             first_name="Jane",
-            last_name="Professor"
+            last_name="Professor",
+            degree=self.other_degree
         )
         
         # Assign only lecturer1 to the course
@@ -84,15 +88,15 @@ class SecretaryForwardToLecturerTest(TestCase):
         self.client.force_login(self.secretary)
     
     def test_request_detail_shows_available_lecturers(self):
-        """Test that request detail shows lecturers for the course."""
+        """Test that request detail shows lecturers of the secretary's department."""
         response = self.client.get(
             reverse('staff:request_detail', args=[self.request_with_course.id])
         )
         
         self.assertEqual(response.status_code, 200)
-        # Should show lecturer1 who is assigned to the course
+        # Should show lecturer1 who is in the secretary's department
         self.assertContains(response, "John Lecturer")
-        # Should NOT show lecturer2 who is not assigned
+        # Should NOT show lecturer2 who belongs to another department
         self.assertNotContains(response, "Jane Professor")
     
     def test_forward_to_lecturer_with_course(self):
@@ -109,26 +113,26 @@ class SecretaryForwardToLecturerTest(TestCase):
         self.assertEqual(self.request_with_course.assigned_lecturer, self.lecturer1)
     
     def test_cannot_forward_to_unassigned_lecturer(self):
-        """Test that cannot forward to a lecturer not assigned to the course."""
+        """Test that cannot forward to a lecturer from another department."""
         response = self.client.post(
             reverse('staff:send_to_lecturer', args=[self.request_with_course.id]),
-            {'lecturer_id': self.lecturer2.id}  # Not assigned to the course
+            {'lecturer_id': self.lecturer2.id}  # Different department
         )
         
         self.request_with_course.refresh_from_db()
         # Should still be NEW status
         self.assertEqual(self.request_with_course.status, Request.STATUS_NEW)
     
-    def test_cannot_forward_request_without_course(self):
-        """Test that requests without course cannot be forwarded to lecturer."""
-        response = self.client.post(
+    def test_can_forward_request_without_course_to_department_lecturer(self):
+        """A request with no course can still go to a lecturer of the secretary's department."""
+        self.client.post(
             reverse('staff:send_to_lecturer', args=[self.request_without_course.id]),
             {'lecturer_id': self.lecturer1.id}
         )
         
         self.request_without_course.refresh_from_db()
-        # Should still be NEW status
-        self.assertEqual(self.request_without_course.status, Request.STATUS_NEW)
+        self.assertEqual(self.request_without_course.status, Request.STATUS_SENT_TO_LECTURER)
+        self.assertEqual(self.request_without_course.assigned_lecturer, self.lecturer1)
     
     def test_forward_to_hod_always_available(self):
         """Test that forwarding to HOD is always available."""
