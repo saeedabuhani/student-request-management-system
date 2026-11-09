@@ -103,3 +103,5 @@ Result: 167 tests, OK (8 skipped). The `test_*.py` files in the repository root 
 - Move from SQLite to PostgreSQL for deployment.
 - Exportable reports for the head of department.
 - Replace the manual root-level scripts with proper tests.
+
+© 2026 Saeed Abuhani – All rights reserved
